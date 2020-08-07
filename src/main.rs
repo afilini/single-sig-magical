@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use magical_bitcoin_wallet::blockchain::ElectrumBlockchain;
-use magical_bitcoin_wallet::Wallet;
+use magical_bitcoin_wallet::{TxBuilder, Wallet};
 
 use magical_bitcoin_wallet::bitcoin;
 use magical_bitcoin_wallet::electrum_client;
@@ -57,7 +57,7 @@ fn main() -> Result<(), WalletError> {
     println!("New address: {}", wallet.get_new_address()?);
 
     println!("Syncing balance...");
-    wallet.sync(None, None)?;
+    wallet.sync(None)?;
 
     let balance = wallet.get_balance()?;
     println!("Balance: {}", balance);
@@ -67,8 +67,11 @@ fn main() -> Result<(), WalletError> {
 
         println!("Sending everything to: {}", receiver);
 
-        let (psbt, details) =
-            wallet.create_tx(vec![(receiver, 0)], true, 1e3 * 1e-8, None, None, None)?;
+        let (psbt, details) = wallet.create_tx(
+            TxBuilder::from_addressees(vec![(receiver, 0)])
+                .send_all(true)
+                .fee_rate(wallet.estimate_fee(6)?),
+        )?;
         println!(
             "PSBT created, total outgoing amount = {}. Signing now...",
             details.sent
